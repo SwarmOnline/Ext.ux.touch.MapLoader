@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; minimum-scale=1.0; user-scalable=0;" />
+        <link rel="stylesheet" href="lib/sencha-touch/resources/css/sencha-touch.css" type="text/css">
+        <title>Ext.ux.touch.MapLoader</title>
+		
+		<style>
+			.header, .footer {
+				background-image: -webkit-gradient(linear, 0% 0, 0% 100%, from(#EEF5F8), to(#BFC7CB));
+				border-bottom: 1px solid #5D6469;
+				padding: 3px 0 0 33px;
+				color: #444;
+				font-size: 12px;
+			}
+			
+			.footer {
+				border-top: 1px solid #5D6469;
+				padding: 0px;
+			}
+			
+			.loading {
+				background-image: url('images/iPhoneLoader.gif'), -webkit-gradient(linear, 0% 0, 0% 100%, from(#EEF5F8), to(#BFC7CB));
+				background-repeat: no-repeat;
+				background-position: 10px 2px, 0 0;
+			}
+			
+		</style>
+		
+        <script type="text/javascript" src="lib/sencha-touch/sencha-touch-debug.js"></script>
+        <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=true"></script>
+        <script type="text/javascript" src="Ext.ux.touch.MapLoader.js"></script>
+		<script type="text/javascript" src="SwarmOnline.MyMap.js"></script>
+        <script type="text/javascript">
+            
+            Ext.setup({
+                tabletStartupScreen: 'tablet_startup.png',
+                phoneStartupScreen: 'phone_startup.png',
+                icon: 'icon.png',
+                glossOnIcon: false,
+                onReady: function(){
+                    
+                    
+                    var panel = new Ext.Panel({
+                        fullscreen: true,
+						dockedItems: [{
+							dock: 'top',
+							html: '',
+							height: 22,
+							cls: 'header'
+						}, {
+							dock: 'bottom',
+							style: 'text-align: center;',
+							html: 'www.SwarmOnline.com',
+							height: 22,
+							cls: 'footer'
+						}],
+                        items: [new SwarmOnline.MyMap()]
+                    });
+					
+					panel.items.get(0).store.on({
+						beforeload: function(){
+							this.getDockedItems()[0].getEl().addCls('loading');
+							this.getDockedItems()[0].update('loading...');
+						},
+						load: function(){
+							// Make loading icon hang around for a little longer
+							setTimeout(Ext.createDelegate(function(){
+								this.getDockedItems()[0].getEl().removeCls('loading');
+								this.getDockedItems()[0].update('');
+							}, this), 200);
+						},
+						scope: panel
+					});
+                    
+                    panel.show();
+                    
+                }
+            });
+        </script>
+    </head>
+    <body>
+    </body>
+</html>
