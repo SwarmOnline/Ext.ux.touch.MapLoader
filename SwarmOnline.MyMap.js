@@ -55,7 +55,7 @@ SwarmOnline.MyMap = Ext.extend(Ext.Map, {
                             var marker = new google.maps.Marker({
                                 map: this.map,
                                 position: markerPos,
-                                icon: 'http://www.stuartashworth.com/SenchaTouch/Plugins%20&%20Extensions/Ext.ux.touch.MapLoader/icons/black' + ((this.loadCount < 10) ? '0' + this.loadCount : this.loadCount) + '.png'
+                                icon: 'http://www.swarmonline.com/wp-content/uploads/TutorialFiles/Demos/Ext.ux.touch.MapLoader/icons/black' + ((this.loadCount < 10) ? '0' + this.loadCount : this.loadCount) + '.png'
                             });
                         }
                     }
