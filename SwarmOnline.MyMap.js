@@ -1,6 +1,7 @@
 Ext.ns('SwarmOnline');
 
-Ext.regModel('Location', {
+Ext.define('Location', {
+	extend: 'Ext.data.Model',
     fields: [{
         name: 'lat',
         type: 'float'
@@ -13,73 +14,64 @@ Ext.regModel('Location', {
     }]
 });
 
-SwarmOnline.MyMap = Ext.extend(Ext.Map, {
+Ext.define('SwarmOnline.MyMap', {
+	extend: 'Ext.Map',
+
+	config: {
+		plugins: [{
+			xclass: 'Ext.ux.touch.MapLoader',
+			store: 'Locations'
+		}],
+		geo: {
+			autoUpdate: false
+		},
+
+		store: null
+	},
+
     markerCache: new Ext.util.MixedCollection(),
     
     loadCount: 1,
-    initComponent: function(){
-    
-        this.store = new Ext.data.Store({
-            model: 'Location',
-            proxy: {
-                type: 'ajax',
-                url: 'server/search.php',
-                reader: {
-                    type: 'json',
-                    root: 'result'
-                }
-            }
-        });
+    initialize: function(){
+	    this.getGeo().setAutoUpdate(false);
+
+	    this.getStore().on({
+		    load: function(store, records, successful){
+			    if (successful) {
+				    this.loadCount = this.loadCount + 1;
+
+				    for (var i = 0; i < records.length; i++) {
+
+					    var record = records[i];
+
+					    // only add markers that haven't already been added
+					    if (!this.markerExists(record.data.lat, record.data.lng)) {
+
+						    // cache the latest position so it isn't re-added later
+						    this.markerCache.add({
+							    lat: record.data.lat,
+							    lng: record.data.lng
+						    });
+
+						    var markerPos = new google.maps.LatLng(record.data.lat, record.data.lng);
+
+						    // add the marker
+						    var marker = new google.maps.Marker({
+							    map: this.map,
+							    position: markerPos,
+							    icon: 'http://www.swarmonline.com/wp-content/uploads/TutorialFiles/Demos/Ext.ux.touch.MapLoader/icons/black' + ((this.loadCount < 10) ? '0' + this.loadCount : this.loadCount) + '.png'
+						    });
+					    }
+				    }
+			    }
+		    },
+		    scope: this
+	    });
+
+
+	    //this.setPlugins();
         
-        this.store.on({
-            load: function(store, records, successful){
-                if (successful) {
-                    this.loadCount = this.loadCount + 1;
-                    
-                    for (var i = 0; i < records.length; i++) {
-                    
-                        var record = records[i];
-                        
-						// only add markers that haven't already been added
-                        if (!this.markerExists(record.data.lat, record.data.lng)) {
-                        
-							// cache the latest position so it isn't re-added later
-                            this.markerCache.add({
-                                lat: record.data.lat,
-                                lng: record.data.lng
-                            });
-							
-                            var markerPos = new google.maps.LatLng(record.data.lat, record.data.lng);
-                            
-							// add the marker
-                            var marker = new google.maps.Marker({
-                                map: this.map,
-                                position: markerPos,
-                                icon: 'http://www.swarmonline.com/wp-content/uploads/TutorialFiles/Demos/Ext.ux.touch.MapLoader/icons/black' + ((this.loadCount < 10) ? '0' + this.loadCount : this.loadCount) + '.png'
-                            });
-                        }
-                    }
-                }
-            },
-            scope: this
-        });
-        
-        Ext.apply(this, {
-            plugins: [new Ext.ux.touch.MapLoader({
-                store: this.store
-            })],
-            centered: true,
-            mapOptions: {
-                center: new google.maps.LatLng(55.857809, -4.242511),
-                zoom: 17
-            },
-            listeners: {
-                //mapload: this.doLoadPoints,
-                scope: this
-            }
-        });
-        
-        SwarmOnline.MyMap.superclass.initComponent.call(this);
+        this.callParent(arguments);
     },
     
     doLoadPoints: function(centre, bounds, boundingRadius, bufferRadius, zoom){

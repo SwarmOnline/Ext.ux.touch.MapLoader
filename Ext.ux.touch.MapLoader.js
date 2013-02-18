@@ -15,9 +15,11 @@
  *
  * License details: http://www.gnu.org/licenses/lgpl.html
  */
-Ext.ns('Ext.ux.touch');
 
-Ext.ux.touch.MapLoader = Ext.extend(Ext.util.Observable, {
+
+Ext.define('Ext.ux.touch.MapLoader', {
+
+	extend: 'Ext.util.Observable',
 
     /**
      * Decides which units (Miles or Kilometers) are used for radiuses and other distances
@@ -40,12 +42,14 @@ Ext.ux.touch.MapLoader = Ext.extend(Ext.util.Observable, {
      * Either a decimal between 0 and 1 for ratio types or any number for fixed bufferType
      */
     buffer: 0.05,
-    
-    /**
-     * Set this to a Store object and the plugin will automatically reload it passing up
-     * the necessary coordinates and distances
-     */
-    store: null,
+
+	config: {
+	    /**
+	     * Set this to a Store object and the plugin will automatically reload it passing up
+	     * the necessary coordinates and distances
+	     */
+	    store: null
+	},
 	
 	/**
 	 * If set to true stops the plugin from doing loads or firing the 'mapload' event
@@ -77,7 +81,7 @@ Ext.ux.touch.MapLoader = Ext.extend(Ext.util.Observable, {
         });
         
         // If the store is configured then add our own handler to the 'mapload' event
-        if (!Ext.isEmpty(this.store)) {
+        if (!Ext.isEmpty(this.getStore())) {
             this.parent.on({
                 mapload: this.onMapLoad,
                 scope: this
@@ -91,7 +95,7 @@ Ext.ux.touch.MapLoader = Ext.extend(Ext.util.Observable, {
     onDestroy: function(){
         this.parent.removeListener('maprender', this.onMapRender);
         
-        if (!Ext.isEmpty(this.store)) {
+        if (!Ext.isEmpty(this.getStore())) {
             this.parent.removeListener('mapload', this.onMapLoad);
         }
     },
@@ -101,14 +105,14 @@ Ext.ux.touch.MapLoader = Ext.extend(Ext.util.Observable, {
      * This sets up the listeners that can't be added until the map has been rendered
      */
     onMapRender: function(){
-        google.maps.event.addListener(this.parent.map, 'moveend', Ext.createDelegate(this.onMoveEnd, this));
+        google.maps.event.addListener(this.parent.getMap(), 'dragend', Ext.bind(this.onMoveEnd, this));
         
-        google.maps.event.addListener(this.parent.map, 'bounds_changed', Ext.createDelegate(this.onBoundsChanged, this));
+        google.maps.event.addListener(this.parent.getMap(), 'bounds_changed', Ext.bind(this.onBoundsChanged, this));
     },
     
     onMapLoad: function(centre, bounds, boundingRadius, bufferRadius, zoom){
     
-        this.store.load({
+        this.getStore().load({
             params: {
                 centre: Ext.encode(centre),
                 bounds: Ext.encode(bounds),
@@ -132,11 +136,11 @@ Ext.ux.touch.MapLoader = Ext.extend(Ext.util.Observable, {
 			// if time between Current Time and Last Interval Load Time is greater than
 			// 'loadInterval' option, only if 'loadInterval' is greater than 0
 			if ((currentTime.getTime() - this.lastIntervalLoadDate.getTime()) >= this.loadInterval && this.loadInterval > 0) {
-				this.onMoveEnd(this.parent.map.getCenter()); // do the load
+				this.onMoveEnd(this.parent.getMap().getCenter()); // do the load
 				this.lastIntervalLoadDate = new Date(); // update the lastIntervalLoadDate property
 			}
 			
-			this.createMoveEndEvent(this.parent.map.getCenter());
+			this.createMoveEndEvent(this.parent.getMap().getCenter());
 		}
     },
     
@@ -148,19 +152,20 @@ Ext.ux.touch.MapLoader = Ext.extend(Ext.util.Observable, {
      */
     createMoveEndEvent: function(centre){
         clearTimeout(this.timeout);
-        this.timeout = setTimeout(Ext.createDelegate(this.raiseMoveEndEvent, this, [centre]), 100);
+        this.timeout = setTimeout(Ext.bind (this.raiseMoveEndEvent, this, [centre]), 100);
     },
     raiseMoveEndEvent: function(centre){
-        google.maps.event.trigger(this.parent.map, 'moveend', centre);
+        google.maps.event.trigger(this.parent.getMap() , 'dragend', centre);
     },
     
     /**
      * Handler to process the MoveEnd event and raise the plugins own 'mapload' event
      * which is used to load the new locations
-     * @param {Object} centre
      */
-    onMoveEnd: function(centre){
-        var bounds = this.parent.map.getBounds(); // the Map's Bounding Box
+    onMoveEnd: function(){
+
+        var centre = this.parent.getMap().getCenter(),
+	        bounds = this.parent.getMap().getBounds(); // the Map's Bounding Box
         
         // Make the positions a little more user friendly!
         var centreNorm = {
@@ -180,7 +185,7 @@ Ext.ux.touch.MapLoader = Ext.extend(Ext.util.Observable, {
         
         var boundingRadius = this.getBoundingRadius(centreNorm, boundsNorm); // the radius of the map's bounding circle
         var bufferRadius = this.getBufferRadius(boundingRadius); // the amount of extra distance to add to help smoother loading
-        var zoom = this.parent.map.getZoom(); // the current zoom setting of the map
+        var zoom = this.parent.getMap() .getZoom(); // the current zoom setting of the map
         
 		// Fire the 'mapload' event so the consuming code can load the new data
 		this.parent.fireEvent('mapload', centreNorm, boundsNorm, boundingRadius, bufferRadius, zoom);
@@ -261,6 +266,14 @@ Ext.ux.touch.MapLoader = Ext.extend(Ext.util.Observable, {
 	},
 	setDisabled: function(disabled){
 		this.disabled = disabled;
+	},
+
+	applyStore: function(store){
+		if(Ext.isString(store)){
+			store = Ext.getStore(store);
+		}
+
+		return store;
 	}
     
 });
